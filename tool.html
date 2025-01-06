@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Compare Investments (Closest Earlier Fallback)</title>
+
+  <!-- BOOTSTRAP 5 CSS (CDN) -->
+  <link 
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" 
+    rel="stylesheet"
+  >
+
+  <!-- CHART.JS (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      margin: 20px;
+      background-color: #f8f9fa;
+    }
+
+    h1, h2, h3 {
+      margin-top: 1rem;
+      margin-bottom: 0.75rem;
+    }
+
+    table {
+      width: 100%;
+      margin-bottom: 1.5rem;
+    }
+    thead th {
+      background: #e9ecef;
+    }
+
+    .details-row {
+      display: none; 
+      background: #f9f9f9;
+    }
+    .details-row td {
+      padding: 10px;
+    }
+    .details-table {
+      margin-top: 5px;
+      border: 1px solid #999;
+      border-collapse: collapse;
+      width: 100%;
+    }
+    .details-table th, .details-table td {
+      border: 1px solid #999;
+      padding: 4px;
+    }
+    .details-table th {
+      background: #eee;
+    }
+
+    /* Make the chart container taller */
+    #chartContainer {
+      margin-top: 20px;
+      height: 600px; /* Increase or change as you wish */
+    }
+
+    /* Ensures the canvas can fill the container’s height */
+    canvas#comparisonChart {
+      height: 100% !important;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1 class="text-primary mb-4">Compare Investments (Closest Earlier Fallback)</h1>
+
+  <!-- NAV TABS -->
+  <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button 
+        class="nav-link active" 
+        id="add-tab" 
+        data-bs-toggle="tab"
+        data-bs-target="#tabAdd" 
+        type="button" 
+        role="tab" 
+        aria-controls="tabAdd" 
+        aria-selected="true"
+      >
+        Add Investment
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button 
+        class="nav-link" 
+        id="investments-tab" 
+        data-bs-toggle="tab"
+        data-bs-target="#tabInvestments" 
+        type="button" 
+        role="tab" 
+        aria-controls="tabInvestments" 
+        aria-selected="false"
+      >
+        My Investments
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button 
+        class="nav-link" 
+        id="comparison-tab" 
+        data-bs-toggle="tab"
+        data-bs-target="#tabComparison" 
+        type="button" 
+        role="tab" 
+        aria-controls="tabComparison" 
+        aria-selected="false"
+      >
+        Comparison
+      </button>
+    </li>
+    <!-- NEW TAB: FAQs -->
+    <li class="nav-item" role="presentation">
+      <button 
+        class="nav-link" 
+        id="faqs-tab" 
+        data-bs-toggle="tab"
+        data-bs-target="#tabFaqs" 
+        type="button" 
+        role="tab" 
+        aria-controls="tabFaqs" 
+        aria-selected="false"
+      >
+        FAQs
+      </button>
+    </li>
+  </ul>
+
+  <!-- TAB CONTENT -->
+  <div class="tab-content" id="mainTabsContent">
+
+    <!-- TAB 1: ADD INVESTMENT -->
+    <div 
+      class="tab-pane fade show active p-3" 
+      id="tabAdd" 
+      role="tabpanel" 
+      aria-labelledby="add-tab"
+    >
+      <h2>Add a New Investment</h2>
+      <form id="addInvestmentForm" class="row g-3 align-items-end">
+        <div class="col-auto">
+          <label for="investmentName" class="form-label">Investment Name:</label>
+          <input 
+            type="text" 
+            id="investmentName" 
+            class="form-control"
+            required 
+          />
+        </div>
+        <div class="col-auto">
+          <label for="investmentDate" class="form-label">Investment Date:</label>
+          <input 
+            type="date" 
+            id="investmentDate" 
+            class="form-control"
+            required 
+          />
+        </div>
+        <div class="col-auto">
+          <label for="investmentTotal" class="form-label">Investment Total:</label>
+          <input 
+            type="number" 
+            id="investmentTotal" 
+            step="0.01" 
+            class="form-control"
+            required 
+          />
+        </div>
+        <div class="col-auto">
+          <button type="submit" class="btn btn-primary">Add Investment</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- TAB 2: MY INVESTMENTS -->
+    <div 
+      class="tab-pane fade p-3" 
+      id="tabInvestments" 
+      role="tabpanel" 
+      aria-labelledby="investments-tab"
+    >
+      <h2>My Investments</h2>
+      <table id="investmentsTable" class="table table-bordered">
+        <thead>
+          <tr>
+            <th>Investment</th>
+            <th>Date</th>
+            <th>Amount Invested</th>
+            <th>Current Price (editable)</th>
+            <th>Save</th>
+            <th>Delete</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Rows will be populated from localStorage -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TAB 3: COMPARISON -->
+    <div 
+      class="tab-pane fade p-3" 
+      id="tabComparison" 
+      role="tabpanel" 
+      aria-labelledby="comparison-tab"
+    >
+      <!-- API KEYS Setup Section -->
+      <h3>API Keys Setup</h3>
+      <div class="row mb-3">
+        <!-- Twelve Data Key -->
+        <div class="col-auto">
+          <label for="twelveDataInput" class="form-label fw-bold">
+            <a href="https://twelvedata.com" target="_blank">Twelve Data API Key</a>:
+          </label>
+          <input 
+            type="text" 
+            id="twelveDataInput" 
+            class="form-control w-auto d-inline-block" 
+            placeholder="Twelve Data Key" 
+          />
+          <button id="saveTwelveDataBtn" class="btn btn-outline-primary ms-2">
+            Save Key
+          </button>
+        </div>
+        <!-- Alpha Vantage Key -->
+        <div class="col-auto">
+          <label for="alphaVantageInput" class="form-label fw-bold">
+            <a href="https://www.alphavantage.co/support/#api-key" target="_blank">Alpha Vantage API Key</a>:
+          </label>
+          <input 
+            type="text" 
+            id="alphaVantageInput" 
+            class="form-control w-auto d-inline-block" 
+            placeholder="Alpha Vantage Key" 
+          />
+          <button id="saveAlphaVantageBtn" class="btn btn-outline-primary ms-2">
+            Save Key
+          </button>
+        </div>
+      </div>
+
+      <hr />
+
+      <!-- Choose which investment to compare -->
+      <div class="mb-3">
+        <label for="investmentSelect" class="form-label fw-bold">Select Investment:</label>
+        <select id="investmentSelect" class="form-select w-auto d-inline-block">
+          <!-- Options populated from localStorage -->
+        </select>
+        <button id="calculateOthersBtn" class="btn btn-success ms-3">
+          Compare Investment
+        </button>
+      </div>
+
+      <p id="lastFetchDate" class="text-muted mb-3"></p>
+
+      <h2>Comparison Table</h2>
+      <table id="comparisonTable" class="table table-bordered">
+        <thead>
+          <tr>
+            <th>Investment</th>
+            <th>Investment Date</th>
+            <th>Amount Invested</th>
+            <th>Your Investment Current Value</th>
+            <th>Bitcoin Value</th>
+            <th>Ethereum Value</th>
+            <th>Tesla Value</th>
+            <th>S&amp;P 500 Value</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Single row populated after fetch -->
+        </tbody>
+      </table>
+
+      <div id="chartContainer">
+        <canvas id="comparisonChart"></canvas>
+      </div>
+    </div>
+
+    <!-- NEW TAB 4: FAQs -->
+    <div 
+      class="tab-pane fade p-3"
+      id="tabFaqs"
+      role="tabpanel"
+      aria-labelledby="faqs-tab"
+    >
+      <h2>FAQs</h2>
+      <ol>
+        <li>
+          Are there any limitations on this tool?
+          <ol type="a">
+            <li>
+              You can use it freely and even copy the html yourself to use as you like. 
+              Appreciated (but not mandatory) a share, like or link to this tool.
+            </li>
+          </ol>
+        </li>
+        <li>
+          Any Api limitations?
+          <ol>
+            <li>
+              In order to get crypto and stock pricing, you will need to get an API key
+              <ul>
+                <li>
+                  Twelve Data API - 8/min (800/day) with free api - see more at 
+                  <a href="https://twelvedata.com/pricing" target="_blank">https://twelvedata.com/pricing</a>
+                </li>
+                <li>
+                  Alpha Vantage API - 25 requests/day with free api - see more at 
+                  <a href="https://www.alphavantage.co/support/#api-key" target="_blank">
+                    https://www.alphavantage.co/support/#api-key
+                  </a>
+                </li>
+              </ul>
+            </li>
+          </ol>
+        </li>
+        <li>
+          I have a suggestion for feature/comment or question. How do I contact you?
+          <ol>
+            <li>
+              Send us a message at 
+              <a href="https://onescales.com/pages/contact" target="_blank">https://onescales.com/pages/contact</a>
+            </li>
+          </ol>
+        </li>
+      </ol>
+    </div>
+
+  </div> <!-- /tab-content -->
+</div> <!-- /container -->
+
+<!-- BOOTSTRAP 5 JS (CDN) -->
+<script 
+  src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
+></script>
+
+<script>
+/************************************************************************
+ *  GLOBAL CONFIG / VARIABLES
+ ***********************************************************************/
+const STORAGE_KEY = 'myInvestments';
+const STORAGE_KEY_TWELVE = 'twelveDataApiKey';
+const STORAGE_KEY_ALPHA = 'alphaVantageApiKey';
+
+let TWELVE_DATA_API_KEY = '';
+let ALPHA_VANTAGE_API_KEY = '';
+
+let comparisonChartInstance = null;
+
+/************************************************************************
+ *  UTIL FUNCTIONS
+ ***********************************************************************/
+function getInvestments() {
+  const fromStorage = localStorage.getItem(STORAGE_KEY);
+  return fromStorage ? JSON.parse(fromStorage) : [];
+}
+
+function saveInvestments(investments) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(investments));
+}
+
+function generateId() {
+  return '_' + Math.random().toString(36).substr(2, 9);
+}
+
+function formatCurrency(num) {
+  if (isNaN(num)) return '–';
+  return `$${Number(num).toLocaleString(undefined, {
+    minimumFractionDigits: 2, 
+    maximumFractionDigits: 2
+  })}`;
+}
+
+/**
+ * Given the object of date->price, returns the closest date
+ * that is <= requestedDate (YYYY-MM-DD). If none are <=, we fallback to the earliest anyway.
+ */
+function findClosestEarlierDate(dataObj, requestedDate) {
+  // dataObj has keys like "2025-01-06", plus possibly "current"
+  let allKeys = Object.keys(dataObj).filter(k => k !== "current");
+  allKeys.sort();  // ascending sort, earliest to latest (e.g. "2024-03-25" < "2024-03-26")
+
+  // If there's no data at all, just return the requested date
+  if (!allKeys.length) return requestedDate;
+
+  // If requestedDate < the first date => use the first date
+  const firstDate = allKeys[0];
+  if (requestedDate <= firstDate) {
+    console.log(`Requested date ${requestedDate} is older than earliest data ${firstDate}. Using earliest date.`);
+    return firstDate;
+  }
+
+  // If requestedDate >= the last date => use the last date
+  const lastDate = allKeys[allKeys.length - 1];
+  if (requestedDate >= lastDate) {
+    return lastDate;
+  }
+
+  // Otherwise, just iterate to find the largest date <= requestedDate
+  let candidate = firstDate;
+  for (const dKey of allKeys) {
+    if (dKey <= requestedDate) {
+      candidate = dKey;
+    } else {
+      break;
+    }
+  }
+  return candidate;
+}
+
+/************************************************************************
+ *  RENDER MY INVESTMENTS TABLE
+ ***********************************************************************/
+function renderInvestmentsTable() {
+  const investments = getInvestments();
+  const tbody = document.querySelector('#investmentsTable tbody');
+  tbody.innerHTML = '';
+
+  investments.forEach(invest => {
+    const tr = document.createElement('tr');
+
+    // Name
+    const tdName = document.createElement('td');
+    tdName.textContent = invest.name;
+    tr.appendChild(tdName);
+
+    // Date
+    const tdDate = document.createElement('td');
+    tdDate.textContent = invest.date;
+    tr.appendChild(tdDate);
+
+    // Total
+    const tdTotal = document.createElement('td');
+    tdTotal.textContent = formatCurrency(invest.total);
+    tr.appendChild(tdTotal);
+
+    // Current Price (editable)
+    const tdCurrentPrice = document.createElement('td');
+    const cpInput = document.createElement('input');
+    cpInput.type = 'number';
+    cpInput.step = '0.01';
+    cpInput.value = invest.currentPrice || '';
+    cpInput.classList.add('form-control', 'form-control-sm');
+    tdCurrentPrice.appendChild(cpInput);
+    tr.appendChild(tdCurrentPrice);
+
+    // Save button
+    const tdSave = document.createElement('td');
+    const saveBtn = document.createElement('button');
+    saveBtn.textContent = 'Save';
+    saveBtn.classList.add('btn', 'btn-sm', 'btn-outline-primary');
+    saveBtn.addEventListener('click', () => {
+      const newCP = parseFloat(cpInput.value);
+      updateCurrentPrice(invest.id, newCP);
+    });
+    tdSave.appendChild(saveBtn);
+    tr.appendChild(tdSave);
+
+    // Delete button
+    const tdDelete = document.createElement('td');
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.classList.add('btn', 'btn-sm', 'btn-danger');
+    deleteBtn.addEventListener('click', () => {
+      deleteInvestment(invest.id);
+    });
+    tdDelete.appendChild(deleteBtn);
+    tr.appendChild(tdDelete);
+
+    tbody.appendChild(tr);
+  });
+
+  // Re-render the investmentSelect in the comparison tab
+  renderInvestmentSelect();
+}
+
+function updateCurrentPrice(investId, newPrice) {
+  const investments = getInvestments();
+  const idx = investments.findIndex(inv => inv.id === investId);
+  if (idx >= 0) {
+    investments[idx].currentPrice = newPrice;
+    saveInvestments(investments);
+    renderInvestmentsTable();
+  }
+}
+
+function deleteInvestment(investId) {
+  let investments = getInvestments();
+  investments = investments.filter(inv => inv.id !== investId);
+  saveInvestments(investments);
+  renderInvestmentsTable();
+}
+
+/************************************************************************
+ *  RENDER SELECT (for the Comparison tab)
+ ***********************************************************************/
+function renderInvestmentSelect() {
+  const investments = getInvestments();
+  const select = document.getElementById('investmentSelect');
+  select.innerHTML = '';
+
+  if (!investments.length) {
+    const opt = document.createElement('option');
+    opt.textContent = 'No investments found';
+    opt.disabled = true;
+    opt.selected = true;
+    select.appendChild(opt);
+    return;
+  }
+
+  investments.forEach(inv => {
+    const opt = document.createElement('option');
+    opt.value = inv.id;
+    opt.textContent = inv.name;
+    select.appendChild(opt);
+  });
+}
+
+/************************************************************************
+ *  FETCH HELPERS
+ *  1) For TSLA & SPY from Twelve Data
+ *  2) For BTC & ETH from Alpha Vantage
+ ***********************************************************************/
+async function fetchStockDaily(symbol) {
+  if (!TWELVE_DATA_API_KEY) {
+    throw new Error("Twelve Data API key not set.");
+  }
+  const baseUrl = 'https://api.twelvedata.com/time_series';
+  const url = `${baseUrl}?symbol=${symbol}&interval=1day&outputsize=5000&apikey=${TWELVE_DATA_API_KEY}`;
+  const resp = await fetch(url);
+  const data = await resp.json();
+
+  if (!data || !data.values) {
+    console.warn('No daily data found for symbol', symbol, data);
+    return {};
+  }
+  const result = {};
+  for (const row of data.values) {
+    // row.datetime is "YYYY-MM-DD HH:MM:SS" - let's keep only "YYYY-MM-DD"
+    const dateStr = row.datetime.slice(0, 10);
+    result[dateStr] = parseFloat(row.close);
+  }
+  // current price is the first in the array
+  const currentPrice = data.values[0] ? parseFloat(data.values[0].close) : 0;
+
+  return {
+    ...result,
+    current: currentPrice
+  };
+}
+
+async function fetchAlphaVantageCryptoDaily(symbol) {
+  if (!ALPHA_VANTAGE_API_KEY) {
+    throw new Error("Alpha Vantage API key not set.");
+  }
+  const baseUrl = 'https://www.alphavantage.co/query';
+  const url = `${baseUrl}?function=DIGITAL_CURRENCY_DAILY&symbol=${symbol}&market=USD&apikey=${ALPHA_VANTAGE_API_KEY}`;
+
+  const resp = await fetch(url);
+  const data = await resp.json();
+
+  // The daily data is in "Time Series (Digital Currency Daily)"
+  const timeSeries = data['Time Series (Digital Currency Daily)'];
+  if (!timeSeries) {
+    console.warn('No daily data found for crypto', symbol, data);
+    return {};
+  }
+
+  const result = {};
+  let latestPrice = 0;
+  let latestDate = null;
+
+  for (const dateStr in timeSeries) {
+    const closeStr = timeSeries[dateStr]['4. close'];
+    const closeVal = parseFloat(closeStr);
+
+    result[dateStr] = closeVal;
+
+    // Track the most recent date to get "current" price
+    if (!latestDate || dateStr > latestDate) {
+      latestDate = dateStr;
+      latestPrice = closeVal;
+    }
+  }
+
+  return {
+    ...result,
+    current: latestPrice
+  };
+}
+
+/************************************************************************
+ *  COMPARISON LOGIC
+ ***********************************************************************/
+function renderComparisonTableForSingle(symbolData, investment) {
+  const tbody = document.querySelector('#comparisonTable tbody');
+  tbody.innerHTML = ''; // clear previous
+
+  const rowResults = {
+    originalTotal: investment.total,
+    yourVal: investment.currentPrice || 0,
+    btcVal:  0,
+    ethVal:  0,
+    tslaVal: 0,
+    spyVal:  0
+  };
+
+  // Create main row
+  const tr = document.createElement('tr');
+
+  // 1) Investment Name
+  const tdName = document.createElement('td');
+  tdName.textContent = investment.name;
+  tr.appendChild(tdName);
+
+  // 2) Investment Date
+  const tdDate = document.createElement('td');
+  tdDate.textContent = investment.date;
+  tr.appendChild(tdDate);
+
+  // 3) Amount Invested
+  const tdInvested = document.createElement('td');
+  tdInvested.textContent = formatCurrency(investment.total);
+  tr.appendChild(tdInvested);
+
+  // 4) Your Investment (current value)
+  const tdYourValue = document.createElement('td');
+  tdYourValue.textContent = formatCurrency(rowResults.yourVal);
+  tr.appendChild(tdYourValue);
+
+  // 5) BTC
+  const btcClosestDate = findClosestEarlierDate(symbolData.btc, investment.date);
+  if (symbolData.btc[btcClosestDate] && symbolData.btc.current) {
+    const histPrice = symbolData.btc[btcClosestDate];
+    const currPrice = symbolData.btc.current;
+    if (histPrice > 0) {
+      const units = investment.total / histPrice;
+      rowResults.btcVal = units * currPrice;
+    }
+  }
+  const tdBTC = document.createElement('td');
+  tdBTC.textContent = formatCurrency(rowResults.btcVal);
+  tr.appendChild(tdBTC);
+
+  // 6) ETH
+  const ethClosestDate = findClosestEarlierDate(symbolData.eth, investment.date);
+  if (symbolData.eth[ethClosestDate] && symbolData.eth.current) {
+    const histPrice = symbolData.eth[ethClosestDate];
+    const currPrice = symbolData.eth.current;
+    if (histPrice > 0) {
+      const units = investment.total / histPrice;
+      rowResults.ethVal = units * currPrice;
+    }
+  }
+  const tdETH = document.createElement('td');
+  tdETH.textContent = formatCurrency(rowResults.ethVal);
+  tr.appendChild(tdETH);
+
+  // 7) TSLA
+  const tslaClosestDate = findClosestEarlierDate(symbolData.tsla, investment.date);
+  if (symbolData.tsla[tslaClosestDate] && symbolData.tsla.current) {
+    const histPrice = symbolData.tsla[tslaClosestDate];
+    const currPrice = symbolData.tsla.current;
+    if (histPrice > 0) {
+      const units = investment.total / histPrice;
+      rowResults.tslaVal = units * currPrice;
+    }
+  }
+  const tdTSLA = document.createElement('td');
+  tdTSLA.textContent = formatCurrency(rowResults.tslaVal);
+  tr.appendChild(tdTSLA);
+
+  // 8) SPY
+  const spyClosestDate = findClosestEarlierDate(symbolData.spy, investment.date);
+  if (symbolData.spy[spyClosestDate] && symbolData.spy.current) {
+    const histPrice = symbolData.spy[spyClosestDate];
+    const currPrice = symbolData.spy.current;
+    if (histPrice > 0) {
+      const units = investment.total / histPrice;
+      rowResults.spyVal = units * currPrice;
+    }
+  }
+  const tdSPY = document.createElement('td');
+  tdSPY.textContent = formatCurrency(rowResults.spyVal);
+  tr.appendChild(tdSPY);
+
+  // 9) "Show Details" Button
+  const tdDetails = document.createElement('td');
+  const detailsBtn = document.createElement('button');
+  detailsBtn.textContent = 'Show Details';
+  detailsBtn.classList.add('btn', 'btn-sm', 'btn-info');
+
+  const detailsTr = createDetailsRow(rowResults);
+  detailsBtn.addEventListener('click', () => {
+    detailsTr.style.display = (detailsTr.style.display === 'none') ? 'table-row' : 'none';
+    detailsBtn.textContent = (detailsTr.style.display === 'none') 
+      ? 'Show Details' 
+      : 'Hide Details';
+  });
+
+  tdDetails.appendChild(detailsBtn);
+  tr.appendChild(tdDetails);
+
+  // Append the main row & the hidden details row
+  tbody.appendChild(tr);
+  tbody.appendChild(detailsTr);
+
+  // Finally, render the chart below the table
+  renderComparisonChart(rowResults, investment.name);
+}
+
+function createDetailsRow(rowResults) {
+  const tr = document.createElement('tr');
+  tr.classList.add('details-row');
+  tr.style.display = 'none';
+
+  const td = document.createElement('td');
+  td.colSpan = 9; // We now have 9 columns
+
+  const detailsTable = document.createElement('table');
+  detailsTable.classList.add('details-table');
+
+  // Table header
+  const thead = document.createElement('thead');
+  thead.innerHTML = `
+    <tr>
+      <th>Asset</th>
+      <th>Amount Invested</th>
+      <th>Current Value</th>
+      <th>Profit / Loss (vs. Original)</th>
+      <th>P/L (%)</th>
+    </tr>
+  `;
+  detailsTable.appendChild(thead);
+
+  // table body
+  const tbody = document.createElement('tbody');
+  const original = rowResults.originalTotal || 0;
+
+  const assets = [
+    { label: 'Your Investment', value: rowResults.yourVal },
+    { label: 'Bitcoin',         value: rowResults.btcVal },
+    { label: 'Ethereum',        value: rowResults.ethVal },
+    { label: 'Tesla',           value: rowResults.tslaVal },
+    { label: 'S&P 500',         value: rowResults.spyVal }
+  ];
+
+  assets.forEach(a => {
+    const trAsset = document.createElement('tr');
+
+    // 1) Asset
+    const tdAsset = document.createElement('td');
+    tdAsset.textContent = a.label;
+    trAsset.appendChild(tdAsset);
+
+    // 2) Amount Invested
+    const tdInvested = document.createElement('td');
+    tdInvested.textContent = formatCurrency(original);
+    trAsset.appendChild(tdInvested);
+
+    // 3) Current Value
+    const tdVal = document.createElement('td');
+    tdVal.textContent = formatCurrency(a.value);
+    trAsset.appendChild(tdVal);
+
+    // 4) Profit / Loss
+    const diff = a.value - original;
+    const tdDiff = document.createElement('td');
+    tdDiff.textContent = formatCurrency(diff);
+    trAsset.appendChild(tdDiff);
+
+    // 5) P/L %
+    const tdPct = document.createElement('td');
+    let pct = 0;
+    if (original !== 0) {
+      pct = (diff / original) * 100;
+    }
+    tdPct.textContent = pct.toFixed(2) + '%';
+    trAsset.appendChild(tdPct);
+
+    tbody.appendChild(trAsset);
+  });
+
+  detailsTable.appendChild(tbody);
+  td.appendChild(detailsTable);
+  tr.appendChild(td);
+  return tr;
+}
+
+/************************************************************************
+ *  CHART RENDERING
+ ***********************************************************************/
+function renderComparisonChart(rowResults, investmentName) {
+  if (comparisonChartInstance) {
+    comparisonChartInstance.destroy();
+  }
+
+  const original = rowResults.originalTotal || 0;
+  const assets = [
+    { label: 'Your Investment', value: rowResults.yourVal },
+    { label: 'Bitcoin',         value: rowResults.btcVal },
+    { label: 'Ethereum',        value: rowResults.ethVal },
+    { label: 'Tesla',           value: rowResults.tslaVal },
+    { label: 'S&P 500',         value: rowResults.spyVal }
+  ];
+
+  const labels = assets.map(a => a.label);
+  const finalValues = assets.map(a => a.value);
+  const plPercents = assets.map(a => {
+    const diff = a.value - original;
+    return (original === 0) ? 0 : (diff / original) * 100;
+  });
+
+  const ctx = document.getElementById('comparisonChart').getContext('2d');
+
+  comparisonChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Final Value',
+          data: finalValues,
+          backgroundColor: 'rgba(54,162,235,0.6)',
+          yAxisID: 'y' 
+        },
+        {
+          label: 'P/L %',
+          data: plPercents,
+          backgroundColor: 'rgba(255,99,132,0.6)',
+          type: 'line',
+          yAxisID: 'y1'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        title: {
+          display: true,
+          text: `Current Value & P/L% for: ${investmentName}`
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'Final Value (USD)'
+          }
+        },
+        y1: {
+          beginAtZero: true,
+          position: 'right',
+          title: {
+            display: true,
+            text: 'P/L %'
+          },
+          grid: {
+            drawOnChartArea: false 
+          }
+        }
+      }
+    }
+  });
+}
+
+/************************************************************************
+ *  EVENT HANDLERS
+ ***********************************************************************/
+document.getElementById('addInvestmentForm').addEventListener('submit', e => {
+  e.preventDefault();
+  
+  const name = document.getElementById('investmentName').value.trim();
+  const date = document.getElementById('investmentDate').value;
+  const total = parseFloat(document.getElementById('investmentTotal').value);
+
+  if (!name || !date || isNaN(total)) {
+    alert('Please fill out all fields correctly.');
+    return;
+  }
+
+  const newInvestment = {
+    id: generateId(),
+    name,
+    date,
+    total,
+    currentPrice: 0
+  };
+
+  const investments = getInvestments();
+  investments.push(newInvestment);
+  saveInvestments(investments);
+
+  document.getElementById('addInvestmentForm').reset();
+  renderInvestmentsTable();
+});
+
+document.getElementById('saveTwelveDataBtn').addEventListener('click', () => {
+  const keyVal = document.getElementById('twelveDataInput').value.trim();
+  if (!keyVal) {
+    alert('Please enter a valid Twelve Data API Key.');
+    return;
+  }
+  localStorage.setItem(STORAGE_KEY_TWELVE, keyVal);
+  TWELVE_DATA_API_KEY = keyVal;
+  alert('Twelve Data API Key saved!');
+});
+
+document.getElementById('saveAlphaVantageBtn').addEventListener('click', () => {
+  const keyVal = document.getElementById('alphaVantageInput').value.trim();
+  if (!keyVal) {
+    alert('Please enter a valid Alpha Vantage API Key.');
+    return;
+  }
+  localStorage.setItem(STORAGE_KEY_ALPHA, keyVal);
+  ALPHA_VANTAGE_API_KEY = keyVal;
+  alert('Alpha Vantage API Key saved!');
+});
+
+document.getElementById('calculateOthersBtn').addEventListener('click', async () => {
+  try {
+    let finalTwelveKey = localStorage.getItem(STORAGE_KEY_TWELVE);
+    if (!finalTwelveKey && TWELVE_DATA_API_KEY) {
+      finalTwelveKey = TWELVE_DATA_API_KEY;
+    }
+    if (!finalTwelveKey) {
+      alert("Please save your Twelve Data API key first.");
+      return;
+    }
+    TWELVE_DATA_API_KEY = finalTwelveKey;
+
+    let finalAlphaKey = localStorage.getItem(STORAGE_KEY_ALPHA);
+    if (!finalAlphaKey && ALPHA_VANTAGE_API_KEY) {
+      finalAlphaKey = ALPHA_VANTAGE_API_KEY;
+    }
+    if (!finalAlphaKey) {
+      alert("Please save your Alpha Vantage API key first.");
+      return;
+    }
+    ALPHA_VANTAGE_API_KEY = finalAlphaKey;
+
+    const selectedId = document.getElementById('investmentSelect').value;
+    const allInvestments = getInvestments();
+    const investment = allInvestments.find(inv => inv.id === selectedId);
+    if (!investment) {
+      alert('Please select an investment first.');
+      return;
+    }
+
+    const [tslaData, spyData] = await Promise.all([
+      fetchStockDaily('TSLA'),
+      fetchStockDaily('SPY')
+    ]);
+    const [btcData, ethData] = await Promise.all([
+      fetchAlphaVantageCryptoDaily('BTC'),
+      fetchAlphaVantageCryptoDaily('ETH')
+    ]);
+
+    const symbolData = {
+      tsla: tslaData,
+      spy:  spyData,
+      btc:  btcData,
+      eth:  ethData
+    };
+
+    document.getElementById('lastFetchDate').textContent = 
+      `Last fetched other prices on: ${new Date().toLocaleString()}`;
+
+    renderComparisonTableForSingle(symbolData, investment);
+
+  } catch (err) {
+    console.error(err);
+    alert('Error fetching data. Please try again later.');
+  }
+});
+
+/************************************************************************
+ *  PAGE INIT
+ ***********************************************************************/
+(function init() {
+  renderInvestmentsTable();
+
+  const savedTwelve = localStorage.getItem(STORAGE_KEY_TWELVE);
+  if (savedTwelve) {
+    TWELVE_DATA_API_KEY = savedTwelve;
+    document.getElementById('twelveDataInput').value = savedTwelve;
+  }
+
+  const savedAlpha = localStorage.getItem(STORAGE_KEY_ALPHA);
+  if (savedAlpha) {
+    ALPHA_VANTAGE_API_KEY = savedAlpha;
+    document.getElementById('alphaVantageInput').value = savedAlpha;
+  }
+})();
+</script>
+</body>
+</html>
