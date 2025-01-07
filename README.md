@@ -7,10 +7,9 @@ All you have to do is add your investments, update the current price over time, 
 
 Feel free to copy the HTML and use it.
 
-Just get a free API key from X and Y, and you can start.
+Demo: https://investmentcomparison.pages.dev/tool-6
 
 Future releases todos:
-- Consider stock splits in calculations
 - Improve UI
 - Create a settings page to be able to manage comparison assets
 - Add investments - sync price by date if stock or crypto
