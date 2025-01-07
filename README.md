@@ -16,3 +16,4 @@ Future releases todos:
 - Add investments - sync price by date if stock or crypto
 - Add video tutorial
 - Add more FAQs
+- Better error handling and outputting of error (especially for api limits)
