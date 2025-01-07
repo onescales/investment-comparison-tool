@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Investment Comparison Tool v0.1</title>
+  <title>Investment Comparison Tool v0.2</title>
 
   <!-- BOOTSTRAP 5 CSS (CDN) -->
   <link 
@@ -67,8 +67,10 @@
 </head>
 <body>
 
+<!-- Made by OneScales.com -->
+
 <div class="container">
-  <h1 class="text-primary mb-4">Investment Comparison Tool</h1>
+  <h1 class="text-primary mb-4">Investment Comparison Tool v0.2</h1>
 
   <!-- NAV TABS -->
   <ul class="nav nav-tabs" id="mainTabs" role="tablist">
@@ -297,7 +299,7 @@
           Are there any limitations on this tool?
           <ol type="a">
             <li>
-              You can use it freely and even copy the html yourself to use as you like. 
+              You can use it freely and even copy the html yourself to use as you like.
               Appreciated (but not mandatory) a share, like or link to this tool.
             </li>
           </ol>
@@ -337,6 +339,11 @@
   </div> <!-- /tab-content -->
 </div> <!-- /container -->
 
+<!-- FOOTER -->
+<footer class="text-center mt-4">
+  <p>Made by <a href="https://OneScales.com" target="_blank">OneScales.com</a></p>
+</footer>
+
 <!-- BOOTSTRAP 5 JS (CDN) -->
 <script 
   src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
@@ -358,19 +365,31 @@ let comparisonChartInstance = null;
 /************************************************************************
  *  UTIL FUNCTIONS
  ***********************************************************************/
+/**
+ * Get all user investments from localStorage
+ */
 function getInvestments() {
   const fromStorage = localStorage.getItem(STORAGE_KEY);
   return fromStorage ? JSON.parse(fromStorage) : [];
 }
 
+/**
+ * Save user investments to localStorage
+ */
 function saveInvestments(investments) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(investments));
 }
 
+/**
+ * Generate unique ID for each investment
+ */
 function generateId() {
   return '_' + Math.random().toString(36).substr(2, 9);
 }
 
+/**
+ * Format number as currency
+ */
 function formatCurrency(num) {
   if (isNaN(num)) return '–';
   return `$${Number(num).toLocaleString(undefined, {
@@ -380,31 +399,70 @@ function formatCurrency(num) {
 }
 
 /**
- * Given the object of date->price, returns the closest date
- * that is <= requestedDate (YYYY-MM-DD). If none are <=, we fallback to the earliest anyway.
+ * Adjust Tesla historical data for its two stock splits:
+ *   - 2020-08-31 (5-for-1)
+ *   - 2022-08-25 (3-for-1)
+ * Any date before 2020-08-31 => /15
+ * Any date >=2020-08-31 but <2022-08-25 => /3
+ * Dates >=2022-08-25 => no adjustment
+ * We also adjust "current" if present, based on today's date.
  */
-function findClosestEarlierDate(dataObj, requestedDate) {
-  // dataObj has keys like "2025-01-06", plus possibly "current"
-  let allKeys = Object.keys(dataObj).filter(k => k !== "current");
-  allKeys.sort();  // ascending sort, earliest to latest (e.g. "2024-03-25" < "2024-03-26")
+function applyTeslaSplitsToData(dataObj) {
+  const SPLIT1_DATE = '2020-08-31'; // 5-for-1
+  const SPLIT2_DATE = '2022-08-25'; // 3-for-1
 
-  // If there's no data at all, just return the requested date
-  if (!allKeys.length) return requestedDate;
+  for (const dateStr in dataObj) {
+    if (dateStr === 'current') continue; 
+    let price = dataObj[dateStr];
+    if (!price || isNaN(price)) continue;
 
-  // If requestedDate < the first date => use the first date
-  const firstDate = allKeys[0];
-  if (requestedDate <= firstDate) {
-    console.log(`Requested date ${requestedDate} is older than earliest data ${firstDate}. Using earliest date.`);
-    return firstDate;
+    if (dateStr < SPLIT1_DATE) {
+      // older than 2020-08-31 => /15
+      price = price / 15;
+    } 
+    else if (dateStr < SPLIT2_DATE) {
+      // on/after 2020-08-31 but before 2022-08-25 => /3
+      price = price / 3;
+    }
+
+    dataObj[dateStr] = price;
   }
 
-  // If requestedDate >= the last date => use the last date
+  // Adjust dataObj.current based on today's date
+  if (dataObj.hasOwnProperty('current')) {
+    const today = new Date().toISOString().slice(0, 10);
+    let curr = dataObj.current || 0;
+    if (!isNaN(curr)) {
+      if (today < SPLIT1_DATE) {
+        curr = curr / 15;
+      } else if (today < SPLIT2_DATE) {
+        curr = curr / 3;
+      }
+      dataObj.current = curr;
+    }
+  }
+
+  return dataObj;
+}
+
+/**
+ * findClosestEarlierDate: returns largest date <= requestedDate
+ */
+function findClosestEarlierDate(dataObj, requestedDate) {
+  let allKeys = Object.keys(dataObj).filter(k => k !== "current");
+  allKeys.sort();  // ascending sort, earliest to latest
+
+  if (!allKeys.length) return requestedDate;
+
+  const firstDate = allKeys[0];
+  if (requestedDate <= firstDate) {
+    return firstDate;
+  }
   const lastDate = allKeys[allKeys.length - 1];
   if (requestedDate >= lastDate) {
     return lastDate;
   }
 
-  // Otherwise, just iterate to find the largest date <= requestedDate
   let candidate = firstDate;
   for (const dKey of allKeys) {
     if (dKey <= requestedDate) {
@@ -482,6 +540,9 @@ function renderInvestmentsTable() {
   renderInvestmentSelect();
 }
 
+/**
+ * Update the user-specified "currentPrice" for a single investment
+ */
 function updateCurrentPrice(investId, newPrice) {
   const investments = getInvestments();
   const idx = investments.findIndex(inv => inv.id === investId);
@@ -492,6 +553,9 @@ function updateCurrentPrice(investId, newPrice) {
   }
 }
 
+/**
+ * Delete an investment from localStorage
+ */
 function deleteInvestment(investId) {
   let investments = getInvestments();
   investments = investments.filter(inv => inv.id !== investId);
@@ -526,9 +590,10 @@ function renderInvestmentSelect() {
 
 /************************************************************************
  *  FETCH HELPERS
- *  1) For TSLA & SPY from Twelve Data
- *  2) For BTC & ETH from Alpha Vantage
  ***********************************************************************/
+/**
+ * 1) For TSLA & SPY from Twelve Data
+ */
 async function fetchStockDaily(symbol) {
   if (!TWELVE_DATA_API_KEY) {
     throw new Error("Twelve Data API key not set.");
@@ -542,21 +607,28 @@ async function fetchStockDaily(symbol) {
     console.warn('No daily data found for symbol', symbol, data);
     return {};
   }
+
+  // Build date->closePrice object
   const result = {};
   for (const row of data.values) {
-    // row.datetime is "YYYY-MM-DD HH:MM:SS" - let's keep only "YYYY-MM-DD"
     const dateStr = row.datetime.slice(0, 10);
     result[dateStr] = parseFloat(row.close);
   }
-  // current price is the first in the array
+  // The most recent price is in the first row
   const currentPrice = data.values[0] ? parseFloat(data.values[0].close) : 0;
+  result.current = currentPrice;
 
-  return {
-    ...result,
-    current: currentPrice
-  };
+  // If it’s TSLA, apply the split logic
+  if (symbol.toUpperCase() === 'TSLA') {
+    applyTeslaSplitsToData(result);
+  }
+
+  return result;
 }
 
+/**
+ * 2) For BTC & ETH from Alpha Vantage
+ */
 async function fetchAlphaVantageCryptoDaily(symbol) {
   if (!ALPHA_VANTAGE_API_KEY) {
     throw new Error("Alpha Vantage API key not set.");
@@ -567,7 +639,6 @@ async function fetchAlphaVantageCryptoDaily(symbol) {
   const resp = await fetch(url);
   const data = await resp.json();
 
-  // The daily data is in "Time Series (Digital Currency Daily)"
   const timeSeries = data['Time Series (Digital Currency Daily)'];
   if (!timeSeries) {
     console.warn('No daily data found for crypto', symbol, data);
@@ -581,39 +652,57 @@ async function fetchAlphaVantageCryptoDaily(symbol) {
   for (const dateStr in timeSeries) {
     const closeStr = timeSeries[dateStr]['4. close'];
     const closeVal = parseFloat(closeStr);
-
     result[dateStr] = closeVal;
 
-    // Track the most recent date to get "current" price
+    // track the most recent date
     if (!latestDate || dateStr > latestDate) {
       latestDate = dateStr;
       latestPrice = closeVal;
     }
   }
-
-  return {
-    ...result,
-    current: latestPrice
-  };
+  result.current = latestPrice;
+  return result;
 }
 
 /************************************************************************
  *  COMPARISON LOGIC
  ***********************************************************************/
-function renderComparisonTableForSingle(symbolData, investment) {
+async function renderComparisonTableForSingle(symbolData, investment) {
   const tbody = document.querySelector('#comparisonTable tbody');
   tbody.innerHTML = ''; // clear previous
 
+  // rowResults for final value + storing "pastPrice"/"currentPrice" for each asset
+  // Also for "My Investment" (yourVal).
   const rowResults = {
     originalTotal: investment.total,
-    yourVal: investment.currentPrice || 0,
+    
+    // My Investment
+    myPastPrice: investment.total,           // treat total as if 1 share
+    myCurrentPrice: investment.currentPrice, // user-specified in "My Investments"
+    yourVal: investment.currentPrice || 0,   // final $ value = today's price * 1 share
+
+    // BTC
     btcVal:  0,
+    btcPastPrice: 0,
+    btcCurrentPrice: 0,
+
+    // ETH
     ethVal:  0,
+    ethPastPrice: 0,
+    ethCurrentPrice: 0,
+
+    // TSLA
     tslaVal: 0,
-    spyVal:  0
+    tslaPastPrice: 0,
+    tslaCurrentPrice: 0,
+
+    // SPY
+    spyVal:  0,
+    spyPastPrice: 0,
+    spyCurrentPrice: 0
   };
 
-  // Create main row
+  // Main row
   const tr = document.createElement('tr');
 
   // 1) Investment Name
@@ -636,57 +725,65 @@ function renderComparisonTableForSingle(symbolData, investment) {
   tdYourValue.textContent = formatCurrency(rowResults.yourVal);
   tr.appendChild(tdYourValue);
 
-  // 5) BTC
+  //
+  // BTC
+  //
   const btcClosestDate = findClosestEarlierDate(symbolData.btc, investment.date);
-  if (symbolData.btc[btcClosestDate] && symbolData.btc.current) {
-    const histPrice = symbolData.btc[btcClosestDate];
-    const currPrice = symbolData.btc.current;
-    if (histPrice > 0) {
-      const units = investment.total / histPrice;
-      rowResults.btcVal = units * currPrice;
-    }
+  const btcHistPrice = symbolData.btc[btcClosestDate] || 0;
+  const btcCurrPrice = symbolData.btc.current || 0;
+  rowResults.btcPastPrice = btcHistPrice;
+  rowResults.btcCurrentPrice = btcCurrPrice;
+  if (btcHistPrice > 0) {
+    const btcUnits = investment.total / btcHistPrice;
+    rowResults.btcVal = btcUnits * btcCurrPrice;
   }
   const tdBTC = document.createElement('td');
   tdBTC.textContent = formatCurrency(rowResults.btcVal);
   tr.appendChild(tdBTC);
 
-  // 6) ETH
+  //
+  // ETH
+  //
   const ethClosestDate = findClosestEarlierDate(symbolData.eth, investment.date);
-  if (symbolData.eth[ethClosestDate] && symbolData.eth.current) {
-    const histPrice = symbolData.eth[ethClosestDate];
-    const currPrice = symbolData.eth.current;
-    if (histPrice > 0) {
-      const units = investment.total / histPrice;
-      rowResults.ethVal = units * currPrice;
-    }
+  const ethHistPrice = symbolData.eth[ethClosestDate] || 0;
+  const ethCurrPrice = symbolData.eth.current || 0;
+  rowResults.ethPastPrice = ethHistPrice;
+  rowResults.ethCurrentPrice = ethCurrPrice;
+  if (ethHistPrice > 0) {
+    const ethUnits = investment.total / ethHistPrice;
+    rowResults.ethVal = ethUnits * ethCurrPrice;
   }
   const tdETH = document.createElement('td');
   tdETH.textContent = formatCurrency(rowResults.ethVal);
   tr.appendChild(tdETH);
 
-  // 7) TSLA
+  //
+  // TSLA
+  //
   const tslaClosestDate = findClosestEarlierDate(symbolData.tsla, investment.date);
-  if (symbolData.tsla[tslaClosestDate] && symbolData.tsla.current) {
-    const histPrice = symbolData.tsla[tslaClosestDate];
-    const currPrice = symbolData.tsla.current;
-    if (histPrice > 0) {
-      const units = investment.total / histPrice;
-      rowResults.tslaVal = units * currPrice;
-    }
+  const tslaHistPrice = symbolData.tsla[tslaClosestDate] || 0;
+  const tslaCurrPrice = symbolData.tsla.current || 0;
+  rowResults.tslaPastPrice = tslaHistPrice;
+  rowResults.tslaCurrentPrice = tslaCurrPrice;
+  if (tslaHistPrice > 0) {
+    const tslaUnits = investment.total / tslaHistPrice;
+    rowResults.tslaVal = tslaUnits * tslaCurrPrice;
   }
   const tdTSLA = document.createElement('td');
   tdTSLA.textContent = formatCurrency(rowResults.tslaVal);
   tr.appendChild(tdTSLA);
 
-  // 8) SPY
+  //
+  // SPY
+  //
   const spyClosestDate = findClosestEarlierDate(symbolData.spy, investment.date);
-  if (symbolData.spy[spyClosestDate] && symbolData.spy.current) {
-    const histPrice = symbolData.spy[spyClosestDate];
-    const currPrice = symbolData.spy.current;
-    if (histPrice > 0) {
-      const units = investment.total / histPrice;
-      rowResults.spyVal = units * currPrice;
-    }
+  const spyHistPrice = symbolData.spy[spyClosestDate] || 0;
+  const spyCurrPrice = symbolData.spy.current || 0;
+  rowResults.spyPastPrice = spyHistPrice;
+  rowResults.spyCurrentPrice = spyCurrPrice;
+  if (spyHistPrice > 0) {
+    const spyUnits = investment.total / spyHistPrice;
+    rowResults.spyVal = spyUnits * spyCurrPrice;
   }
   const tdSPY = document.createElement('td');
   tdSPY.textContent = formatCurrency(rowResults.spyVal);
@@ -698,7 +795,8 @@ function renderComparisonTableForSingle(symbolData, investment) {
   detailsBtn.textContent = 'Show Details';
   detailsBtn.classList.add('btn', 'btn-sm', 'btn-info');
 
-  const detailsTr = createDetailsRow(rowResults);
+  // Create the row that will show details
+  const detailsTr = createDetailsRow(rowResults, investment.name);
   detailsBtn.addEventListener('click', () => {
     detailsTr.style.display = (detailsTr.style.display === 'none') ? 'table-row' : 'none';
     detailsBtn.textContent = (detailsTr.style.display === 'none') 
@@ -717,22 +815,30 @@ function renderComparisonTableForSingle(symbolData, investment) {
   renderComparisonChart(rowResults, investment.name);
 }
 
+/**
+ * Create a details row that includes Past Price & Today's Price columns,
+ * for both "My Investment" and the other assets.
+ */
 function createDetailsRow(rowResults) {
   const tr = document.createElement('tr');
   tr.classList.add('details-row');
   tr.style.display = 'none';
 
+  // This cell spans all 9 columns of the main table
   const td = document.createElement('td');
-  td.colSpan = 9; // We now have 9 columns
+  td.colSpan = 9;
 
   const detailsTable = document.createElement('table');
   detailsTable.classList.add('details-table');
 
-  // Table header
+  // 7 columns: 
+  //   Asset, Past Price, Today's Price, Amount Invested, Current Value, Profit / Loss, P/L %
   const thead = document.createElement('thead');
   thead.innerHTML = `
     <tr>
       <th>Asset</th>
+      <th>Past Price</th>
+      <th>Today's Price</th>
       <th>Amount Invested</th>
       <th>Current Value</th>
       <th>Profit / Loss (vs. Original)</th>
@@ -741,16 +847,41 @@ function createDetailsRow(rowResults) {
   `;
   detailsTable.appendChild(thead);
 
-  // table body
+  // Build asset rows
   const tbody = document.createElement('tbody');
   const original = rowResults.originalTotal || 0;
 
   const assets = [
-    { label: 'Your Investment', value: rowResults.yourVal },
-    { label: 'Bitcoin',         value: rowResults.btcVal },
-    { label: 'Ethereum',        value: rowResults.ethVal },
-    { label: 'Tesla',           value: rowResults.tslaVal },
-    { label: 'S&P 500',         value: rowResults.spyVal }
+    {
+      label: 'Your Investment',
+      pastPrice: rowResults.myPastPrice,
+      currentPrice: rowResults.myCurrentPrice,
+      currentValue: rowResults.yourVal
+    },
+    {
+      label: 'Bitcoin',
+      pastPrice: rowResults.btcPastPrice,
+      currentPrice: rowResults.btcCurrentPrice,
+      currentValue: rowResults.btcVal
+    },
+    {
+      label: 'Ethereum',
+      pastPrice: rowResults.ethPastPrice,
+      currentPrice: rowResults.ethCurrentPrice,
+      currentValue: rowResults.ethVal
+    },
+    {
+      label: 'Tesla',
+      pastPrice: rowResults.tslaPastPrice,
+      currentPrice: rowResults.tslaCurrentPrice,
+      currentValue: rowResults.tslaVal
+    },
+    {
+      label: 'S&P 500',
+      pastPrice: rowResults.spyPastPrice,
+      currentPrice: rowResults.spyCurrentPrice,
+      currentValue: rowResults.spyVal
+    }
   ];
 
   assets.forEach(a => {
@@ -761,23 +892,37 @@ function createDetailsRow(rowResults) {
     tdAsset.textContent = a.label;
     trAsset.appendChild(tdAsset);
 
-    // 2) Amount Invested
+    // 2) Past Price
+    const tdPastPrice = document.createElement('td');
+    tdPastPrice.textContent = (a.pastPrice != null) 
+      ? formatCurrency(a.pastPrice) 
+      : 'N/A';
+    trAsset.appendChild(tdPastPrice);
+
+    // 3) Today's Price
+    const tdCurrentPrice = document.createElement('td');
+    tdCurrentPrice.textContent = (a.currentPrice != null)
+      ? formatCurrency(a.currentPrice)
+      : 'N/A';
+    trAsset.appendChild(tdCurrentPrice);
+
+    // 4) Amount Invested
     const tdInvested = document.createElement('td');
     tdInvested.textContent = formatCurrency(original);
     trAsset.appendChild(tdInvested);
 
-    // 3) Current Value
+    // 5) Current Value
     const tdVal = document.createElement('td');
-    tdVal.textContent = formatCurrency(a.value);
+    tdVal.textContent = formatCurrency(a.currentValue);
     trAsset.appendChild(tdVal);
 
-    // 4) Profit / Loss
-    const diff = a.value - original;
+    // 6) Profit / Loss
+    const diff = a.currentValue - original;
     const tdDiff = document.createElement('td');
     tdDiff.textContent = formatCurrency(diff);
     trAsset.appendChild(tdDiff);
 
-    // 5) P/L %
+    // 7) P/L %
     const tdPct = document.createElement('td');
     let pct = 0;
     if (original !== 0) {
@@ -957,10 +1102,13 @@ document.getElementById('calculateOthersBtn').addEventListener('click', async ()
       return;
     }
 
+    // Fetch data for TSLA & SPY (from Twelve Data)
     const [tslaData, spyData] = await Promise.all([
       fetchStockDaily('TSLA'),
       fetchStockDaily('SPY')
     ]);
+
+    // Fetch data for BTC & ETH (from Alpha Vantage)
     const [btcData, ethData] = await Promise.all([
       fetchAlphaVantageCryptoDaily('BTC'),
       fetchAlphaVantageCryptoDaily('ETH')
@@ -976,7 +1124,7 @@ document.getElementById('calculateOthersBtn').addEventListener('click', async ()
     document.getElementById('lastFetchDate').textContent = 
       `Last fetched other prices on: ${new Date().toLocaleString()}`;
 
-    renderComparisonTableForSingle(symbolData, investment);
+    await renderComparisonTableForSingle(symbolData, investment);
 
   } catch (err) {
     console.error(err);
