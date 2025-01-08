@@ -1,11 +1,13 @@
 # Investment Comparison Tool
-I built this tool for myself to see if my investments (which are positive) could be improved upon. For example, even though I bought S&P 500 stock that went over 20% up in 2024, I wanted to see if investing the same amount in another stock or crypto might have done better. This tool helps me check so I can learn for the future.
+In the last 2-3 years i've spent a lot of time to understand investing better. I built this tool for myself to see if my investments could be improved upon. In short, if i would have placed the same amount of money in a different stock or crypto for example, would i have done better?
 
-I made it open source and in-browser (using local storage), so everything stays between you and yourself. It does use APIs to read stock and crypto prices, but any data you upload is yours and remains private.
+This tool helps me check so I can learn for the future.
 
-All you have to do is add your investments, update the current price over time, and then sync other stock and crypto prices to see how you would have done.
+It's open source and in-browser (using local storage), meaning your investment data stays private in your browser between you and your browser (yourself). Everything is in 1 html file only. Lastly, in order to get stock and crypto prices, it does use 2 api's (Twelve Data & Alpha Vantage)
 
-Feel free to copy the HTML and use it.
+All you have to do is add your investments, update the current value of them as of today and then sync other stock and crypto prices via the "compare investments" button and see the data table and graphs.
+
+Feel free to copy the HTML and use it in any way fit.
 
 Demo: https://investmentcomparison.pages.dev/tool-6
 
