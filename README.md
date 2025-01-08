@@ -21,7 +21,7 @@ Future releases todos:
 
 # Additional Notes
 - All code and instructions are as is. By reading this repository, readme or any code, you acknowledge that you are solely responsible for your own doings.
-- Link to website article with instructions: TBD
+- Link to website article with instructions: https://onescales.com/blogs/main/investment-comparison-tool
 
 Hope you liked this!
 
