@@ -10,6 +10,7 @@ All you have to do is add your investments, update the current value of them as 
 Feel free to copy the HTML and use it in any way fit.
 
 Youtube Explainer: https://www.youtube.com/watch?v=f-vxTAIxeRA
+
 Demo: https://investment-tool.onescales.com/tool-6
 
 Future releases todos:
