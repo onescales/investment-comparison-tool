@@ -26,16 +26,16 @@ Future releases todos:
 - Add more FAQs
 - Better error handling and outputting of error (especially for api limits)
 
-# Additional Notes
+## Additional Notes
 - All code and instructions are as is. By reading this repository, readme or any code, you acknowledge that you are solely responsible for your own doings.
 - Link to website article with instructions: https://onescales.com/blogs/main/investment-comparison-tool
 
 Hope you liked this!
 
-# Support Us / Donate
+## Support Us / Donate
 If this helped you in any way, please consider supporting us at https://onescales.com/pages/support-us
 
-# Suggestions, Comments and Contact
+## Suggestions, Comments and Contact
 If you have any suggestions, comments, insight or just want to say hi, thanks or share your experience, you can contact us at:
 - Our WebSite: https://onescales.com/
 - Contact Us: https://onescales.com/pages/contact
