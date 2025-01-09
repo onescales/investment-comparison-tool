@@ -9,7 +9,7 @@ All you have to do is add your investments, update the current value of them as 
 
 Feel free to copy the HTML and use it in any way fit.
 
-![Investment Tool Screenshot]([https://example.com/path/to/your/image.png](https://onescales.com/cdn/shop/articles/investment-comparison-tool-screenshot_9e7f29fc-7b47-463d-abb5-1afd6ba83f22.png?v=1736391828))
+[!Investment Tool Screenshot]([https://example.com/path/to/your/image.png](https://onescales.com/cdn/shop/articles/investment-comparison-tool-screenshot_9e7f29fc-7b47-463d-abb5-1afd6ba83f22.png?v=1736391828))
 
 ## Youtube Explainer: 
 [![Watch the video](https://img.youtube.com/vi/f-vxTAIxeRA/0.jpg)](https://www.youtube.com/watch?v=f-vxTAIxeRA)
