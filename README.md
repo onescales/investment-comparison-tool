@@ -11,9 +11,11 @@ Feel free to copy the HTML and use it in any way fit.
 
 ## Youtube Explainer: 
 [![Watch the video](https://img.youtube.com/vi/f-vxTAIxeRA/0.jpg)](https://www.youtube.com/watch?v=f-vxTAIxeRA)
+
 https://www.youtube.com/watch?v=f-vxTAIxeRA
 
 ## Demo
+
 https://investment-tool.onescales.com/tool-6
 
 Future releases todos:
