@@ -12,7 +12,6 @@ Feel free to copy the HTML and use it in any way fit.
 ![Investment Comparison Tool Screenshot](https://onescales.com/cdn/shop/articles/investment-comparison-tool-screenshot_9e7f29fc-7b47-463d-abb5-1afd6ba83f22.png)
 
 
-
 ## Youtube Explainer: 
 [![Watch the video](https://img.youtube.com/vi/f-vxTAIxeRA/0.jpg)](https://www.youtube.com/watch?v=f-vxTAIxeRA)
 
